@@ -29,20 +29,58 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     });
 });
 
-// Contact form handling
+// ========== UPDATED CONTACT FORM HANDLING ==========
 const contactForm = document.getElementById('contactForm');
 if (contactForm) {
-    contactForm.addEventListener('submit', function(e) {
+    contactForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
         // Get form data
         const formData = new FormData(this);
-        const data = Object.fromEntries(formData);
+        const data = {
+            name: formData.get('name'),
+            email: formData.get('email'),
+            subject: formData.get('subject') || 'Contact Form Message',
+            message: formData.get('message')
+        };
         
-        // Here you would typically send the data to a server
-        // For now, show a success message
-        alert('Thank you for your message! I will get back to you soon.');
-        this.reset();
+        // Get submit button
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        
+        try {
+            // Show loading state
+            submitBtn.textContent = 'Sending...';
+            submitBtn.disabled = true;
+            
+            // Send to your Flask backend
+            const response = await fetch('http://127.0.0.1:5000/api/contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                // Success message
+                alert('✅ Thank you for your message! I will get back to you soon.');
+                this.reset();
+            } else {
+                // Server returned error
+                alert('❌ Error: ' + (result.message || 'Something went wrong'));
+            }
+        } catch (error) {
+            // Network error or server not running
+            console.error('Contact form error:', error);
+            alert('❌ Could not send message. Please make sure the backend server is running.\n\nFor local testing: Run your Flask backend first.');
+        } finally {
+            // Reset button state
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
+        }
     });
 }
 
@@ -129,13 +167,8 @@ window.addEventListener('scroll', animateOnScroll);
 // Trigger once on load
 window.addEventListener('load', animateOnScroll);
 
-// Prevent default behavior for contact form if it exists
-if (document.getElementById('contactForm')) {
-    document.getElementById('contactForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        alert('This is a demo form. In a real website, this would send an email.');
-    });
-}
+// Remove the old duplicate form handler
+// (I've removed the second alert that was at the bottom)
 
 // Add keyboard navigation for accessibility
 document.addEventListener('keydown', (e) => {
